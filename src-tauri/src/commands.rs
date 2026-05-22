@@ -42,10 +42,26 @@ pub struct InstalledProfile {
 /// Application settings persisted to disk.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppSettings {
+    #[serde(default)]
     pub community_folder_path: Option<String>,
+    #[serde(default = "default_repo_url")]
     pub profiles_repo_url: String,
+    #[serde(default = "default_base_url")]
     pub profiles_base_url: String,
+    #[serde(default = "default_auto_install")]
     pub auto_install: bool,
+}
+
+fn default_repo_url() -> String {
+    "http://10.8.0.1/freegs/freegs-profiles/raw/branch/main/index.json".to_string()
+}
+
+fn default_base_url() -> String {
+    "http://10.8.0.1/freegs/freegs-profiles/raw/branch/main".to_string()
+}
+
+fn default_auto_install() -> bool {
+    true
 }
 
 impl Default for AppSettings {
@@ -265,14 +281,20 @@ pub async fn download_profile(profile: ProfileEntry, base_url: String) -> Result
 }
 
 /// Returns the current settings.
+/// Always overrides URLs to the canonical Forgejo VPN endpoint (10.8.0.1)
+/// so old/migrated settings still work.
 #[tauri::command]
 pub fn get_settings() -> AppSettings {
     let path = get_settings_path();
-    if let Ok(data) = fs::read_to_string(&path) {
+    let mut settings = if let Ok(data) = fs::read_to_string(&path) {
         serde_json::from_str(&data).unwrap_or_default()
     } else {
         AppSettings::default()
-    }
+    };
+    // Always use the correct VPN URL — ignore any saved value
+    settings.profiles_repo_url = default_repo_url();
+    settings.profiles_base_url = default_base_url();
+    settings
 }
 
 /// Saves settings to disk.
