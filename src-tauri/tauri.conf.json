@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicize/tauri/dev/crates/tauri-config-schema/schema.json",
   "productName": "FreeGS Profile Downloader",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "identifier": "com.freegs.profile-downloader",
   "build": {
     "frontendDist": "../dist",

@@ -1,6 +1,14 @@
+import { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { Package, Github, Globe, Heart } from "lucide-react";
 
 export function AboutView() {
+  const [info, setInfo] = useState<Record<string, any> | null>(null);
+
+  useEffect(() => {
+    invoke("get_server_info").then(setInfo).catch(() => {});
+  }, []);
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="text-center py-8">
@@ -8,7 +16,9 @@ export function AboutView() {
           <Package size={32} className="text-[#3b82f6]" />
         </div>
         <h2 className="text-xl font-bold mb-1">FreeGS Profile Downloader</h2>
-        <p className="text-sm text-[#9ca3af]">Version 0.2.0-beta</p>
+        <p className="text-sm text-[#9ca3af]">
+          {info ? `Version ${info.version}` : "Loading..."}
+        </p>
       </div>
 
       <div className="bg-[#222436] border border-[#2d3148] rounded-lg p-6 space-y-4">

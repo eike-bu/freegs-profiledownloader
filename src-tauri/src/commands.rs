@@ -313,7 +313,7 @@ pub fn save_settings(settings: AppSettings) -> Result<(), String> {
 #[tauri::command]
 pub fn get_server_info() -> serde_json::Value {
     serde_json::json!({
-        "version": "0.2.0-beta",
+        "version": "0.2.1-beta",
         "name": "FreeGS Profile Downloader",
         "os": std::env::consts::OS,
         "arch": std::env::consts::ARCH,

@@ -46,10 +46,25 @@ export default function App() {
 
       {/* Status toast */}
       {statusMessage && (
-        <div className="fixed bottom-6 right-6 bg-[#222436] border border-[#2d3148] rounded-lg px-4 py-3 shadow-lg text-sm z-50 animate-fadeIn">
+        <div className="fixed bottom-14 right-6 bg-[#222436] border border-[#2d3148] rounded-lg px-4 py-3 shadow-lg text-sm z-50 animate-fadeIn">
           {statusMessage}
         </div>
       )}
+
+      {/* Version footer */}
+      <div className="bg-[#191b28] border-t border-[#2d3148] px-4 py-1.5 flex items-center justify-between">
+        <span className="text-xs text-[#6b7280]">
+          v0.2.1-beta
+        </span>
+        <span className="text-xs text-[#6b7280]">
+          <a
+            href="http://10.8.0.1/freegs/freegs-app"
+            className="text-[#3b82f6]/60 hover:text-[#3b82f6]"
+          >
+            freegs/freegs-app
+          </a>
+        </span>
+      </div>
     </div>
   );
 }

@@ -24,6 +24,7 @@ export function ProfileListView({ onStatus }: ProfileListViewProps) {
   const [profiles, setProfiles] = useState<ProfileEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastUrl, setLastUrl] = useState<string>("");
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -38,6 +39,7 @@ export function ProfileListView({ onStatus }: ProfileListViewProps) {
     try {
       const settings: any = await invoke("get_settings");
       const indexUrl = settings.profiles_repo_url;
+      setLastUrl(indexUrl);
       const result: ProfileEntry[] = await invoke("fetch_profile_index", {
         url: indexUrl,
       });
@@ -103,10 +105,17 @@ export function ProfileListView({ onStatus }: ProfileListViewProps) {
         <div className="bg-[#222436] border border-[#2d3148] rounded-lg p-8 text-center">
           <WifiOff size={48} className="mx-auto mb-4 text-[#6b7280] opacity-50" />
           <h3 className="text-lg font-semibold mb-2">Connection Error</h3>
-          <p className="text-sm text-[#9ca3af] mb-4 max-w-md mx-auto">
-            Could not connect to the profile repository ({error.split(":")[0] || "timeout"}).
-            Make sure you are connected to the FreeGS VPN (10.8.0.1).
+          <p className="text-sm text-[#9ca3af] mb-1 max-w-md mx-auto">
+            Could not connect to the profile repository.
           </p>
+          <p className="text-xs text-[#6b7280] mb-4 max-w-md mx-auto font-mono break-all">
+            Tried: {lastUrl}
+          </p>
+          {!lastUrl.includes("10.8.0.1") && (
+            <p className="text-xs text-[#f59e0b] mb-4">
+              ⚠️ URL does not point to the VPN server (10.8.0.1)
+            </p>
+          )}
           <div className="flex justify-center gap-3">
             <button
               onClick={loadProfiles}
