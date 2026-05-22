@@ -1,0 +1,47 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicize/tauri/dev/crates/tauri-config-schema/schema.json",
+  "productName": "FreeGS Profile Downloader",
+  "version": "0.1.0",
+  "identifier": "com.freegs.profile-downloader",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "FreeGS Profile Downloader",
+        "width": 1024,
+        "height": 720,
+        "minWidth": 800,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png"
+    ],
+    "windows": {
+      "wix": null,
+      "nsis": null
+    },
+    "linux": {
+      "deb": {
+        "depends": []
+      },
+      "appimage": {}
+    }
+  }
+}

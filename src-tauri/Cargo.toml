@@ -1,0 +1,28 @@
+[package]
+name = "freegs-app"
+version = "0.1.0"
+description = "FreeGS Profile Downloader — Automatically download and install GSX profiles for MSFS"
+authors = ["FreeGS Contributors"]
+edition = "2021"
+
+[lib]
+name = "freegs_app_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
+zip = "2"
+dirs = "6"
+thiserror = "2"
+log = "0.4"
+regex-lite = "0.1"
+env_logger = "0.11"
