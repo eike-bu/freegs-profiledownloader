@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "FreeGS Profile Downloader",
+        "title": "FreeGS - Profile Downloader",
         "width": 1024,
         "height": 720,
         "minWidth": 800,

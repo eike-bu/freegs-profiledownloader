@@ -314,7 +314,7 @@ pub fn save_settings(settings: AppSettings) -> Result<(), String> {
 pub fn get_server_info() -> serde_json::Value {
     serde_json::json!({
         "version": "0.2.1-beta",
-        "name": "FreeGS Profile Downloader",
+        "name": "FreeGS - Profile Downloader",
         "os": std::env::consts::OS,
         "arch": std::env::consts::ARCH,
     })
