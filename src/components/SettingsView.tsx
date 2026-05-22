@@ -11,7 +11,9 @@ export function SettingsView({ onStatus }: SettingsViewProps) {
   const [settings, setSettings] = useState<AppSettings>({
     community_folder_path: null,
     profiles_repo_url:
-      "https://raw.githubusercontent.com/freegs/freegs-profiles/main/index.json",
+      "http://10.8.0.1/freegs/freegs-profiles/raw/branch/main/index.json",
+    profiles_base_url:
+      "http://10.8.0.1/freegs/freegs-profiles/raw/branch/main",
     auto_install: true,
   });
 
@@ -29,20 +31,21 @@ export function SettingsView({ onStatus }: SettingsViewProps) {
   const handleSave = async () => {
     try {
       await invoke("save_settings", { settings });
-      onStatus("Settings saved successfully");
+      onStatus("✅ Settings saved");
     } catch (err) {
-      onStatus(`Error saving settings: ${err}`);
+      onStatus(`❌ ${err}`);
     }
   };
 
   const handleReset = () => {
-    const defaults: AppSettings = {
+    setSettings({
       community_folder_path: null,
       profiles_repo_url:
-        "https://raw.githubusercontent.com/freegs/freegs-profiles/main/index.json",
+        "http://10.8.0.1/freegs/freegs-profiles/raw/branch/main/index.json",
+      profiles_base_url:
+        "http://10.8.0.1/freegs/freegs-profiles/raw/branch/main",
       auto_install: true,
-    };
-    setSettings(defaults);
+    });
   };
 
   return (
@@ -74,10 +77,10 @@ export function SettingsView({ onStatus }: SettingsViewProps) {
           </p>
         </div>
 
-        {/* Repository URL */}
+        {/* Repository Index URL */}
         <div>
           <label className="block text-sm font-medium mb-1.5">
-            Profiles Repository URL
+            Profile Index URL
           </label>
           <input
             type="text"
@@ -87,6 +90,24 @@ export function SettingsView({ onStatus }: SettingsViewProps) {
             }
             className="w-full bg-[#222436] border border-[#2d3148] rounded-lg px-4 py-2 text-sm text-[#e1e4f0] placeholder-[#6b7280] focus:outline-none focus:border-[#3b82f6] font-mono text-xs"
           />
+        </div>
+
+        {/* Base Raw URL */}
+        <div>
+          <label className="block text-sm font-medium mb-1.5">
+            Profiles Base URL (for file downloads)
+          </label>
+          <input
+            type="text"
+            value={settings.profiles_base_url}
+            onChange={(e) =>
+              setSettings({ ...settings, profiles_base_url: e.target.value })
+            }
+            className="w-full bg-[#222436] border border-[#2d3148] rounded-lg px-4 py-2 text-sm text-[#e1e4f0] placeholder-[#6b7280] focus:outline-none focus:border-[#3b82f6] font-mono text-xs"
+          />
+          <p className="text-xs text-[#6b7280] mt-1">
+            Base URL for raw file downloads. Appends region/ICAO/developer/filename.
+          </p>
         </div>
 
         {/* Auto-install */}

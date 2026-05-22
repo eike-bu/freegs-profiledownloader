@@ -8,7 +8,7 @@ export function AboutView() {
           <Package size={32} className="text-[#3b82f6]" />
         </div>
         <h2 className="text-xl font-bold mb-1">FreeGS Profile Downloader</h2>
-        <p className="text-sm text-[#9ca3af]">Version 0.1.0</p>
+        <p className="text-sm text-[#9ca3af]">Version 0.2.0-beta</p>
       </div>
 
       <div className="bg-[#222436] border border-[#2d3148] rounded-lg p-6 space-y-4">
@@ -38,20 +38,20 @@ export function AboutView() {
           </h3>
           <p className="text-xs text-[#6b7280]">
             <a
-              href="https://github.com/freegs/freegs-app"
+              href="http://10.8.0.1/freegs/freegs-app"
               className="text-[#3b82f6] hover:underline"
             >
-              github.com/freegs/freegs-app
+              10.8.0.1/freegs/freegs-app
             </a>
           </p>
           <p className="text-xs text-[#6b7280] mt-1">
             Profiles repository:
             <br />
             <a
-              href="https://github.com/freegs/freegs-profiles"
+              href="http://10.8.0.1/freegs/freegs-profiles"
               className="text-[#3b82f6] hover:underline"
             >
-              github.com/freegs/freegs-profiles
+              10.8.0.1/freegs/freegs-profiles
             </a>
           </p>
         </div>

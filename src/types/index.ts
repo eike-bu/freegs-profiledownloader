@@ -10,7 +10,18 @@ export interface ProfileEntry {
   developer: string;
   scenery_name: string;
   profile_author: string;
-  download_url: string;
+  source_type: string | null;
+  source_url: string | null;
+  source_name: string | null;
+  /** Map of filename → sha256 hash */
+  files: Record<string, string>;
+}
+
+export interface DownloadResult {
+  icao: string;
+  installed_files: string[];
+  verified: boolean;
+  message: string;
 }
 
 export interface InstalledProfile {
@@ -23,6 +34,7 @@ export interface InstalledProfile {
 export interface AppSettings {
   community_folder_path: string | null;
   profiles_repo_url: string;
+  profiles_base_url: string;
   auto_install: boolean;
 }
 

@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use std::fs;
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 // ---------------------------------------------------------------------------
@@ -9,29 +10,24 @@ use serde::{Deserialize, Serialize};
 /// Represents a single addon (scenery) found in the MSFS Community folder.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SceneryAddon {
-    /// Display name (folder name).
     pub name: String,
-    /// Full path to the addon folder.
     pub path: String,
-    /// Whether this addon folder has a matching ICAO code we can scan for.
     pub icao: Option<String>,
 }
 
 /// A profile as listed in the remote repository index.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProfileEntry {
-    /// ICAO code the profile is for (e.g. "EDDF").
     pub icao: String,
-    /// Region (e.g. "europe", "north-america").
     pub region: String,
-    /// Scenery developer / publisher (e.g. "mk-studios", "aerosoft").
     pub developer: String,
-    /// Display name of the scenery.
     pub scenery_name: String,
-    /// Creator of the GSX profile.
     pub profile_author: String,
-    /// Download URL for the profile archive (zip of .ini + .py).
-    pub download_url: String,
+    pub source_type: Option<String>,
+    pub source_url: Option<String>,
+    pub source_name: Option<String>,
+    /// Map of filename → sha256 hash (e.g. {"fale-CptE.ini": "abc...", "fale-CptE.py": "def..."})
+    pub files: HashMap<String, String>,
 }
 
 /// A profile that is already installed locally.
@@ -48,6 +44,7 @@ pub struct InstalledProfile {
 pub struct AppSettings {
     pub community_folder_path: Option<String>,
     pub profiles_repo_url: String,
+    pub profiles_base_url: String,
     pub auto_install: bool,
 }
 
@@ -56,11 +53,23 @@ impl Default for AppSettings {
         Self {
             community_folder_path: None,
             profiles_repo_url: String::from(
-                "https://raw.githubusercontent.com/freegs/freegs-profiles/main/index.json"
+                "http://10.8.0.1/freegs/freegs-profiles/raw/branch/main/index.json"
+            ),
+            profiles_base_url: String::from(
+                "http://10.8.0.1/freegs/freegs-profiles/raw/branch/main"
             ),
             auto_install: true,
         }
     }
+}
+
+/// Result of downloading and verifying a profile.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DownloadResult {
+    pub icao: String,
+    pub installed_files: Vec<String>,
+    pub verified: bool,
+    pub message: String,
 }
 
 // ---------------------------------------------------------------------------
@@ -68,7 +77,6 @@ impl Default for AppSettings {
 // ---------------------------------------------------------------------------
 
 /// Scans the MSFS Community folder for installed scenery addons.
-/// Attempts to guess the ICAO code from folder names (first 4 uppercase chars).
 #[tauri::command]
 pub fn scan_community_folder(path: String) -> Result<Vec<SceneryAddon>, String> {
     let folder = PathBuf::from(&path);
@@ -97,20 +105,12 @@ pub fn scan_community_folder(path: String) -> Result<Vec<SceneryAddon>, String> 
 }
 
 /// Tries to extract a 4-letter ICAO code from a scenery folder name.
-/// Looks for patterns like "aerosoft-eddf", "EDDF_1", "mkstudios-eddl" etc.
 fn guess_icao(folder_name: &str) -> Option<String> {
-    // Common patterns: the folder often contains a 4-letter ICAO somewhere
-    // e.g. "aerosoft-eddf-1.0.0", "EDDF_Scenery", "mk-studios-eddl"
     let upper = folder_name.to_uppercase();
-
-    // Try to find a 4-letter sequence that matches ICAO pattern (E[A-Z][A-Z][A-Z] for Europe,
-    // K[A-Z][A-Z][A-Z] for US, etc.)
     use regex_lite::Regex;
     let re = Regex::new(r"\b([A-Z]{4})\b").ok()?;
     let caps = re.captures(&upper)?;
     let icao = caps.get(1)?.as_str().to_string();
-
-    // Basic validation: ICAO codes should start with a letter, be 4 chars
     if icao.len() == 4 && icao.starts_with(|c: char| c.is_ascii_alphabetic()) {
         Some(icao)
     } else {
@@ -148,13 +148,11 @@ pub fn get_installed_profiles() -> Result<Vec<InstalledProfile>, String> {
             .map(|s| s.to_string_lossy().to_string())
             .unwrap_or_default();
 
-        // Parse ICAO from filename (first 4 chars)
         let icao = filename.chars().take(4).collect::<String>().to_uppercase();
-        let developer = "unknown"; // Could parse from filename pattern
 
         profiles.push(InstalledProfile {
             icao: icao.clone(),
-            developer: developer.to_string(),
+            developer: "unknown".to_string(),
             ini_path: ini_path.to_string_lossy().to_string(),
             py_path,
         });
@@ -166,12 +164,16 @@ pub fn get_installed_profiles() -> Result<Vec<InstalledProfile>, String> {
 /// Fetches the remote profile index from the FreeGS profiles repository.
 #[tauri::command]
 pub async fn fetch_profile_index(url: String) -> Result<Vec<ProfileEntry>, String> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {e}"))?;
+
     let resp = client
         .get(&url)
         .send()
         .await
-        .map_err(|e| format!("Failed to fetch profile index: {e}"))?;
+        .map_err(|e| format!("Connection failed: {e}"))?;
 
     if !resp.status().is_success() {
         return Err(format!("Server returned {}", resp.status()));
@@ -185,70 +187,81 @@ pub async fn fetch_profile_index(url: String) -> Result<Vec<ProfileEntry>, Strin
     Ok(entries)
 }
 
-/// Downloads a profile archive (zip of .ini + .py) from the given URL.
-/// Returns the bytes of the downloaded archive.
+/// Downloads a profile: fetches each raw file, verifies SHA256, installs to GSX dir.
+///
+/// `profile` — the full ProfileEntry from the index
+/// `base_url` — the base raw URL (e.g. http://10.8.0.1/.../raw/branch/main)
 #[tauri::command]
-pub async fn download_profile(url: String) -> Result<Vec<u8>, String> {
-    let client = reqwest::Client::new();
-    let resp = client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|e| format!("Download failed: {e}"))?;
-
-    if !resp.status().is_success() {
-        return Err(format!("Download returned {}", resp.status()));
-    }
-
-    let bytes = resp
-        .bytes()
-        .await
-        .map_err(|e| format!("Failed to read response: {e}"))?
-        .to_vec();
-
-    Ok(bytes)
-}
-
-/// Installs a downloaded profile archive into the GSX profiles directory.
-/// The archive should contain .ini and .py files.
-#[tauri::command]
-pub fn install_profile(profile_zip: Vec<u8>) -> Result<String, String> {
+pub async fn download_profile(profile: ProfileEntry, base_url: String) -> Result<DownloadResult, String> {
     let gsx_dir = get_gsx_profiles_dir()?;
     fs::create_dir_all(&gsx_dir).map_err(|e| e.to_string())?;
 
-    // Read the zip archive
-    let cursor = std::io::Cursor::new(profile_zip);
-    let mut archive = zip::ZipArchive::new(cursor).map_err(|e| e.to_string())?;
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {e}"))?;
 
     let mut installed_files: Vec<String> = Vec::new();
+    let mut all_verified = true;
 
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i).map_err(|e| e.to_string())?;
-        let out_path = gsx_dir.join(file.name());
+    for (filename, expected_hash) in &profile.files {
+        // Construct raw URL: base_url / region / icao / developer / filename
+        let file_url = format!(
+            "{}/{}/{}/{}/{}",
+            base_url.trim_end_matches('/'),
+            profile.region,
+            profile.icao,
+            profile.developer,
+            filename
+        );
 
-        // Prevent directory traversal
-        let out_path = out_path.canonicalize().unwrap_or(out_path);
-        if !out_path.starts_with(&gsx_dir) {
-            continue;
+        let resp = client
+            .get(&file_url)
+            .send()
+            .await
+            .map_err(|e| format!("Failed to download {filename}: {e}"))?;
+
+        if !resp.status().is_success() {
+            return Err(format!("Download of {filename} returned {}", resp.status()));
         }
 
-        if file.is_dir() {
-            fs::create_dir_all(&out_path).map_err(|e| e.to_string())?;
-        } else {
-            if let Some(parent) = out_path.parent() {
-                fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-            }
-            let mut outfile = fs::File::create(&out_path).map_err(|e| e.to_string())?;
-            std::io::copy(&mut file, &mut outfile).map_err(|e| e.to_string())?;
-            installed_files.push(out_path.to_string_lossy().to_string());
+        let bytes = resp
+            .bytes()
+            .await
+            .map_err(|e| format!("Failed to read {filename}: {e}"))?
+            .to_vec();
+
+        // SHA256 verification
+        use sha2::{Sha256, Digest};
+        let actual_hash = hex::encode(Sha256::digest(&bytes));
+
+        if !expected_hash.is_empty() && actual_hash != *expected_hash {
+            all_verified = false;
+            // Still save the file, but report hash mismatch
         }
+
+        // Write file to GSX directory
+        let out_path = gsx_dir.join(filename);
+        fs::write(&out_path, &bytes).map_err(|e| e.to_string())?;
+
+        installed_files.push(out_path.to_string_lossy().to_string());
     }
 
-    Ok(format!(
-        "Installed {} file(s) to {}",
-        installed_files.len(),
-        gsx_dir.to_string_lossy()
-    ))
+    let verified = all_verified && !profile.files.is_empty();
+    let message = if verified {
+        format!("✅ {} files installed and verified", installed_files.len())
+    } else if !verified && !profile.files.is_empty() {
+        format!("⚠️ Files installed but SHA256 mismatch — download may be corrupted")
+    } else {
+        format!("Installed {} file(s)", installed_files.len())
+    };
+
+    Ok(DownloadResult {
+        icao: profile.icao.clone(),
+        installed_files,
+        verified,
+        message,
+    })
 }
 
 /// Returns the current settings.
@@ -278,7 +291,7 @@ pub fn save_settings(settings: AppSettings) -> Result<(), String> {
 #[tauri::command]
 pub fn get_server_info() -> serde_json::Value {
     serde_json::json!({
-        "version": "0.1.0",
+        "version": "0.2.0-beta",
         "name": "FreeGS Profile Downloader",
         "os": std::env::consts::OS,
         "arch": std::env::consts::ARCH,
@@ -291,9 +304,6 @@ pub fn get_server_info() -> serde_json::Value {
 
 /// Returns the GSX profiles directory path.
 fn get_gsx_profiles_dir() -> Result<PathBuf, String> {
-    // On Windows: %AppData%\Virtuali\GSX\MSFS
-    // On Linux/Wine: ~/.wine/... or the XDG equivalent
-    // For now, use a configurable path via settings, default to the standard Windows path
     let base = dirs::data_dir()
         .or_else(|| dirs::home_dir().map(|h| h.join("AppData").join("Roaming")))
         .ok_or_else(|| "Could not determine app data directory".to_string())?;
