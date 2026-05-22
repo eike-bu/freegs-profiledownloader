@@ -9,7 +9,6 @@ import {
   MapPin,
   ExternalLink,
   ShieldCheck,
-  ShieldAlert,
   WifiOff,
   RefreshCw,
 } from "lucide-react";

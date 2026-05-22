@@ -6,7 +6,7 @@ export function AboutView() {
   const [info, setInfo] = useState<Record<string, any> | null>(null);
 
   useEffect(() => {
-    invoke("get_server_info").then(setInfo).catch(() => {});
+    invoke<Record<string, any>>("get_server_info").then(setInfo).catch(() => {});
   }, []);
 
   return (
