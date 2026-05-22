@@ -34,8 +34,9 @@
       "icons/128x128@2x.png"
     ],
     "windows": {
-      "wix": null,
-      "nsis": null
+      "nsis": {
+        "installMode": "currentUser"
+      }
     },
     "linux": {
       "deb": {
