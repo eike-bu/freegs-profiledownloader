@@ -1,6 +1,6 @@
 [package]
 name = "freegs-app"
-version = "0.2.1"
+version = "0.2.3"
 description = "FreeGS Profile Downloader — Automatically download and install GSX profiles for MSFS"
 authors = ["FreeGS Contributors"]
 edition = "2021"

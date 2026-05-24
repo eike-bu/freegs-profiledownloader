@@ -1,11 +1,9 @@
 pub mod commands;
-
 use commands::*;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     env_logger::init();
-
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
@@ -18,6 +16,7 @@ pub fn run() {
             get_settings,
             save_settings,
             get_server_info,
+            get_profile_commits,
         ])
         .run(tauri::generate_context!())
         .expect("error while running FreeGS Profile Downloader");

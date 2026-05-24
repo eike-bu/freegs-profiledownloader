@@ -1,5 +1,6 @@
 import { Package, HardDrive, Settings, Info, Search } from "lucide-react";
 import type { ViewType } from "../types";
+import { APP_VERSION, APP_DISPLAY } from "../constants";
 
 interface SidebarProps {
   activeView: ViewType;
@@ -40,8 +41,8 @@ export function Sidebar({ activeView, onNavigate }: SidebarProps) {
       </nav>
       <div className="px-4 mt-auto pt-4 border-t border-[#2d3148]">
         <div className="text-xs text-[#6b7280]">
-          <div className="font-medium">FreeGS</div>
-          <div>Profile Downloader v0.1.0</div>
+          <div className="font-medium">{APP_DISPLAY}</div>
+          <div>{APP_VERSION}</div>
         </div>
       </div>
     </aside>
