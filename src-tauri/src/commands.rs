@@ -44,6 +44,7 @@ pub struct InstalledProfile {
 pub struct AppSettings {
     #[serde(default)]
     pub community_folder_path: Option<String>,
+    pub community_folder_path_2024: Option<String>,
     #[serde(default = "default_repo_url")]
     pub profiles_repo_url: String,
     #[serde(default = "default_base_url")]
@@ -68,6 +69,7 @@ impl Default for AppSettings {
     fn default() -> Self {
         Self {
             community_folder_path: None,
+            community_folder_path_2024: None,
             profiles_repo_url: String::from(
                 "http://10.8.0.1/freegs/freegs-profiles/raw/branch/main/index.json"
             ),

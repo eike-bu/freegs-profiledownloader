@@ -10,8 +10,8 @@ interface ScannerViewProps {
 export function ScannerView({ onStatus }: ScannerViewProps) {
   const [addons, setAddons] = useState<SceneryAddon[]>([]);
   const [loading, setLoading] = useState(false);
-  const [communityPath, setCommunityPath] = useState<string>("");
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [communityPath, setCommunityPath] = useState<string>("");
 
   // Load saved community folder path
   useEffect(() => {
@@ -30,7 +30,7 @@ export function ScannerView({ onStatus }: ScannerViewProps) {
 
   const handleScan = async () => {
     if (!communityPath.trim()) {
-      onStatus("Please enter a Community folder path first");
+      onStatus("Please set your Community folder path in Settings first");
       return;
     }
     setLoading(true);
@@ -104,7 +104,7 @@ export function ScannerView({ onStatus }: ScannerViewProps) {
           </button>
           <button
             onClick={handleScan}
-            disabled={loading}
+            disabled={loading || !communityPath.trim()}
             className="flex items-center gap-2 px-5 py-2.5 bg-[#3b82f6] text-white rounded-lg text-sm font-medium hover:bg-[#2563eb] transition-colors disabled:opacity-50"
           >
             {loading ? (

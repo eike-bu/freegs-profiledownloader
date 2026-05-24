@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Save, RotateCcw } from "lucide-react";
+import { Save, RotateCcw, FolderOpen } from "lucide-react";
 import type { AppSettings } from "../types";
 
 interface SettingsViewProps {
@@ -16,6 +16,7 @@ export function SettingsView({ onStatus }: SettingsViewProps) {
       "http://10.8.0.1/freegs/freegs-profiles/raw/branch/main",
     auto_install: true,
   });
+  const [communityPath2024, setCommunityPath2024] = useState<string>("");
 
   useEffect(() => {
     (async () => {
@@ -48,6 +49,18 @@ export function SettingsView({ onStatus }: SettingsViewProps) {
     });
   };
 
+  const selectFolder = async () => {
+    try {
+      const { open } = await import("@tauri-apps/plugin-dialog");
+      const selected = await open({ directory: true });
+      if (selected) {
+        setSettings({ ...settings, community_folder_path: selected });
+      }
+    } catch {
+      // Fallback: manual entry
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
@@ -56,57 +69,72 @@ export function SettingsView({ onStatus }: SettingsViewProps) {
           Configure the FreeGS Profile Downloader.
         </p>
       </div>
-
       <div className="space-y-4">
         {/* Community Folder */}
         <div>
           <label className="block text-sm font-medium mb-1.5">
             MSFS Community Folder
           </label>
-          <input
-            type="text"
-            value={settings.community_folder_path ?? ""}
-            onChange={(e) =>
-              setSettings({ ...settings, community_folder_path: e.target.value || null })
-            }
-            placeholder="Path to your MSFS Community folder"
-            className="w-full bg-[#222436] border border-[#2d3148] rounded-lg px-4 py-2 text-sm text-[#e1e4f0] placeholder-[#6b7280] focus:outline-none focus:border-[#3b82f6]"
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={settings.community_folder_path ?? ""}
+              onChange={(e) =>
+                setSettings({ ...settings, community_folder_path: e.target.value || null })
+              }
+              placeholder="Path to your MSFS Community folder"
+              className="flex-1 bg-[#222436] border border-[#2d3148] rounded-lg px-4 py-2 text-sm text-[#e1e4f0] placeholder-[#6b7280] focus:outline-none focus:border-[#3b82f6]"
+            />
+            <button
+              onClick={selectFolder}
+              className="flex items-center justify-center px-3 py-2 bg-[#222436] border border-[#2d3148] rounded-lg hover:bg-[#2d3148] transition-colors"
+              title="Browse folders"
+            >
+              <FolderOpen size={18} />
+            </button>
+          </div>
           <p className="text-xs text-[#6b7280] mt-1">
             e.g. C:\Program Files\MSFS2024\Community
           </p>
         </div>
 
-        {/* Repository Index URL */}
+        {/* Community Folder 2024 */}
         <div>
           <label className="block text-sm font-medium mb-1.5">
-            Profile Index URL
+            MSFS 2024 Community Folder (optional)
+          </label>
+          <input
+            type="text"
+            value={communityPath2024}
+            onChange={(e) => setCommunityPath2024(e.target.value)}
+            placeholder="Path to MSFS 2024 Community folder (if different)"
+            className="w-full bg-[#222436] border border-[#2d3148] rounded-lg px-4 py-2 text-sm text-[#e1e4f0] placeholder-[#6b7280] focus:outline-none focus:border-[#3b82f6]"
+          />
+          <p className="text-xs text-[#6b7280] mt-1">
+            For MSFS 2024 installations with separate Community folder.
+          </p>
+        </div>
+
+        {/* Profiles Repository URL */}
+        <div>
+          <label className="block text-sm font-medium mb-1.5">
+            Profile Repository URL
           </label>
           <input
             type="text"
             value={settings.profiles_repo_url}
-            onChange={(e) =>
-              setSettings({ ...settings, profiles_repo_url: e.target.value })
-            }
-            className="w-full bg-[#222436] border border-[#2d3148] rounded-lg px-4 py-2 text-sm text-[#e1e4f0] placeholder-[#6b7280] focus:outline-none focus:border-[#3b82f6] font-mono text-xs"
-          />
-        </div>
-
-        {/* Base Raw URL */}
-        <div>
-          <label className="block text-sm font-medium mb-1.5">
-            Profiles Base URL (for file downloads)
-          </label>
-          <input
-            type="text"
-            value={settings.profiles_base_url}
-            onChange={(e) =>
-              setSettings({ ...settings, profiles_base_url: e.target.value })
-            }
+            onChange={(e) => {
+              const url = e.target.value;
+              setSettings({ ...settings, profiles_repo_url: url });
+              // Auto-derive base URL from index URL
+              // Assumes index.json is always at the same location
+              const baseUrl = url.replace("/raw/branch/main/index.json", "");
+              setSettings(s => ({ ...s, profiles_base_url: baseUrl }));
+            }}
             className="w-full bg-[#222436] border border-[#2d3148] rounded-lg px-4 py-2 text-sm text-[#e1e4f0] placeholder-[#6b7280] focus:outline-none focus:border-[#3b82f6] font-mono text-xs"
           />
           <p className="text-xs text-[#6b7280] mt-1">
-            Base URL for raw file downloads. Appends region/ICAO/developer/filename.
+            URL to the profile index.json file. The base URL is automatically derived.
           </p>
         </div>
 
